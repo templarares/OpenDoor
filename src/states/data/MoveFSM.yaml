@@ -1,0 +1,20 @@
+MoveFSM:
+  base: Meta
+  StepByStep: true
+  transitions:
+    - [CoM2Left,OK,MoveRFForward, Auto]
+
+CoM2Left:
+  base: MetaTasks
+  tasks:
+    CoM:
+      type: com
+      above: [LeftFoot]
+
+MoveRFForward:
+  base: MetaTasks
+  tasks: 
+    RF:
+      type: surfaceTransform
+      surface: RightFoot
+      moveWorld: [1,0,0,0,0.01,0,0]

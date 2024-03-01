@@ -14,6 +14,8 @@ StatesLibraries:
 StatesFiles:
 - "@MC_STATES_DEFAULT_RUNTIME_INSTALL_PREFIX@/data"
 - "@MC_STATES_RUNTIME_INSTALL_PREFIX@/data"
+# Store the location of configuration files
+ETC_DIR: "@PROJECT_SOURCE_DIR@/etc"
 # If true, state factory will be more verbose
 VerboseStateFactory: false
 # Additional robots to load
@@ -21,7 +23,7 @@ robots:
   ground:
     module: env/ground
   door:
-    module: env/door
+    module: BITDoor
     init_pos:
       translation: [0.70, 0.5, 0.0]
       rotation: [0.0, 0.0, 3.14]
@@ -46,15 +48,15 @@ collisions:
 #       damping: 0.0
 # Initial set of contacts
 contacts:
-- r1: PatrolRobot
+- r1: bit_humanoid
   r1Surface: LeftFoot
   r2: ground
   r2Surface: AllGround
-- r1: PatrolRobot
+- r1: bit_humanoid
   r1Surface: RightFoot
   r2: ground
   r2Surface: AllGround
-PatrolRobot:
+bit_humanoid:
   posture:
     stiffness: 1.0
     weight: 10.0
@@ -86,33 +88,22 @@ states:
         weight: 1000
         stiffness: 5
         # Target relative to the door's handle surface
-        targetSurface:
-          robot: door
-          surface: Handle
-          offset_translation: [0, 0, -0.025]
-          offset_rotation: [ -0.0255, -0.69,-0.714,-0.0685]
+        # targetSurface:
+        #   robot: door
+        #   surface: Handle
+        #   offset_translation: [0, 0, -0.025]
+        #   offset_rotation: [ -0.0255, -0.69,-0.714,-0.0685]
+        moveWorld: [1,0,0,0,0.2,0.05,0.1]
         completion:
           AND:
             - eval: 0.05
             - speed: 1e-4
 
   Door::MoveHandle:
-    base: Posture 
-    robot: door
-    completion:
-      eval: 0.01
-    postureTask:
-      weight: 100
-      jointGains:
-        - jointName: handle
-          stiffness: 50
-      target:
-        handle: [-0.5]
-    AddContacts:
-    - r1: PatrolRobot
-      r1Surface: LeftHand
-      r2: door
-      r2Surface: Handle
+    base: Door::ReachHandle
+    tasks:
+      LeftHandTrajectory:
+        moveWorld: [1,0,0,0,0.2,0.05,0.1]
 
   Door::OpenDoor:
     base: Door::MoveHandle
@@ -132,8 +123,7 @@ states:
 
   Door::OpenDoorFSM:
     base: Meta
-    transitions:
-      - [OpenDoor_Initial, OpenDoor, Door::ReachHandle, Auto]
+    transitions: 
       - [Door::ReachHandle, OK, Door::MoveHandle, Auto]
       - [Door::MoveHandle, OK, Door::OpenDoor, Auto]
 
@@ -142,10 +132,11 @@ states:
     states: [Door::Standing, Door::OpenDoorFSM]
 
 transitions:
+- [OpenDoor_Initial, OpenDoor, Door::OpenDoorDemo, Auto]
 - [Door::OpenDoorDemo, OK, Door::OpenDoorDemo, Strict]
 
 # Initial state
-init: Door::OpenDoorDemo
+init: OpenDoor_Initial
 
 # Observers pipeline
 # In this demo, the state of the real robot is not used.
